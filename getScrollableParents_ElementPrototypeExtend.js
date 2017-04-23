@@ -29,33 +29,60 @@ Element.prototype.getScrollableParents = function (ignoreOverflow_or_Config, che
     			'X' : checkHorizontal,
     			'Y' : checkVertical
     		};
-    		var scrollingAllowedPerAllEvaluatedOverflowAxes = true; // innocent until proven guilty
     		var key;
 
 	    	function checkOverflowByAxis(axis) {    		
 		        var overflow;
 		        var scrollingAllowedPerOverflowStyle;
+		        axis = axis.toUppercase();
 
 		        if (axis !== 'X' && axis !== 'Y') {
-		        	throw new Error ("Unexpected Input: checkOverflowByAxis expects to be passed 'X' or 'Y'."); // this method is not exposed so I'm not expecting this will ever execute...
+		        	throw new Error ("Unexpected Input To Private Function : DEVELOPER ERROR : checkOverflowByAxis expects to be passed 'X' or 'Y'."); // this method is not exposed so I'm not expecting this will ever execute...
 		        }
 
-		        axis = axis.toUppercase();
 		        overflow = window.getComputedStyle(node)['overflow'+axis];
 		        scrollingAllowedPerOverflowStyle = overflow !== 'visible' && overflow !== 'hidden';
 	        	return scrollingAllowedPerOverflowStyle;
 	    	}
-	    	// todo -- this is goofy and *must* be able to be done in a better way that I'll see when I'm better rested-- gonna make it work then gonna make it good
+
 	    	for (key in axesToCheck) {
-	    		if (axesToCheck.hasOwnProperty(key)) {
-	    			scrollingAllowedPerAllEvaluatedOverflowAxes = checkOverflowByAxis(key);
-	    			if (scrollingAllowedPerAllEvaluatedOverflowAxes === false) {
-	    				return scrollingAllowedPerAllEvaluatedOverflowAxes;
+	    		if (axesToCheck.hasOwnProperty(key) && axesToCheck[key] === true) {
+	    			// placed in its own line for readability even though it represents a logical &&
+	    			if (checkOverflowByAxis(key) === true) { // if at any point this is true, the element is by definition scrollable per whatever axis was checked so we can return true
+	    				return true;
 	    			}
 	    		}
 	    	}
 
-	    	return scrollingAllowedPerAllEvaluatedOverflowAxes;
+	    	return false; // if we've reached this point, every axis checked was found disallowed from scrolling per styles, so we return false
+
+    	}
+
+    	function checkDimensions() { // very similar to the checkOverflow-- may be a DRY opportunity here, although that might be beginning to get a little over-engineered given only two similar cases atm...
+
+    		var dimensionsToCheck = {
+    			'Width' : config.checkHorizontal,
+    			'Height' : config.checkVertical
+    		};
+    		var key;
+
+    		function checkBySpecificDimension(dimension) {
+    			if (dimension !== 'Height' && dimension !== 'Width') {
+    				throw new Error ("Unexpected Input To Private Function : DEVELOPER ERROR : checkBySpecificDimension expects to be passed 'Height' or 'Width' as arguments."); // this method is not exposed so I'm not expecting this will ever execute...
+    			}
+    			return node['client'+dimension] !== 0 && node['scroll'+dimension] > node['client'+dimension];
+    		}
+
+    		for (key in dimensionsToCheck) {
+    			if (dimensionsToCheck.hasOwnProperty(key) && dimensionsToCheck[key] === true) {
+    				// placed in its own line for readability even though it represents a logical &&
+    				if (checkBySpecificDimension(key) === true) { // if at any point this is true, the element is by definition scrollable per whatever dimension was checked so we can return true
+    					return true;
+    				}
+    			}
+    		}
+
+    		return false; // if we've reached this point, every axis checked was found disallowed from scrolling per styles, so we return false 
 
     	}
 
@@ -63,9 +90,9 @@ Element.prototype.getScrollableParents = function (ignoreOverflow_or_Config, che
     		isScrollable = isScrollable && checkOverflow();
     	}
 
+    	isScrollable = isScrollable && checkDimensions();
 
-
-        if ( (isScrollable) && (node.clientHeight !== 0) && (node.scrollHeight > node.clientHeight) ) {
+        if ( isScrollable ) {
             scrollable_parents_array.push(node);
         }
 
