@@ -21,20 +21,20 @@ Element.prototype.getScrollableParents = function (ignoreOverflow_or_Config, che
 
     function getScrollParents(node) {
 
-    	var isScrollable=true; // innocent until proven guilty
+    	var isScrollable;
 
     	function checkOverflow() {
 
     		var axesToCheck = {
-    			'X' : checkHorizontal,
-    			'Y' : checkVertical
+    			'X' : config.checkHorizontal,
+    			'Y' : config.checkVertical
     		};
     		var key;
 
 	    	function checkOverflowByAxis(axis) {    		
 		        var overflow;
 		        var scrollingAllowedPerOverflowStyle;
-		        axis = axis.toUppercase();
+		        axis = axis.toUpperCase();
 
 		        if (axis !== 'X' && axis !== 'Y') {
 		        	throw new Error ("Unexpected Input To Private Function : DEVELOPER ERROR : checkOverflowByAxis expects to be passed 'X' or 'Y'."); // this method is not exposed so I'm not expecting this will ever execute...
@@ -86,11 +86,7 @@ Element.prototype.getScrollableParents = function (ignoreOverflow_or_Config, che
 
     	}
 
-    	if (!config.ignoreOverflow) {
-    		isScrollable = isScrollable && checkOverflow();
-    	}
-
-    	isScrollable = isScrollable && checkDimensions();
+    	isScrollable = (!config.ignoreOverflow ? checkOverflow() : true) && checkDimensions();
 
         if ( isScrollable ) {
             scrollable_parents_array.push(node);
