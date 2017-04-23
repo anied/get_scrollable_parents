@@ -1,5 +1,7 @@
 Element.prototype.getScrollableParents = function (ignoreOverflow_or_Config, checkVertical, checkHorizontal, includeSelf) {
 
+	'use strict';
+
 	var startingNode = this;
 
     var scrollable_parents_array = [];
@@ -19,18 +21,46 @@ Element.prototype.getScrollableParents = function (ignoreOverflow_or_Config, che
 
     function getScrollParents(node) {
 
-    	function checkOverflowByAxis(axis) {    		
-	        var overflow;
-	        var isScrollable;
+    	var isScrollable=true; // innocent until proven guilty
 
-	        if (axis !== 'X' && axis !== 'Y') {
-	        	throw new Error ("Unexpected Input: checkOverflowByAxis expects to be passed 'X' or 'Y'."); // this method is not exposed so I'm not expecting this will ever execute...
-	        }
+    	function checkOverflow() {
 
-	        axis = axis.toUppercase();
-	        overflow = window.getComputedStyle(node)['overflow'+axis];
-	        isScrollable = overflow !== 'visible' && overflow !== 'hidden';
-        	return isScrollable;
+    		var axesToCheck = {
+    			'X' : checkHorizontal,
+    			'Y' : checkVertical
+    		};
+    		var scrollingAllowedPerAllEvaluatedOverflowAxes = true; // innocent until proven guilty
+    		var key;
+
+	    	function checkOverflowByAxis(axis) {    		
+		        var overflow;
+		        var scrollingAllowedPerOverflowStyle;
+
+		        if (axis !== 'X' && axis !== 'Y') {
+		        	throw new Error ("Unexpected Input: checkOverflowByAxis expects to be passed 'X' or 'Y'."); // this method is not exposed so I'm not expecting this will ever execute...
+		        }
+
+		        axis = axis.toUppercase();
+		        overflow = window.getComputedStyle(node)['overflow'+axis];
+		        scrollingAllowedPerOverflowStyle = overflow !== 'visible' && overflow !== 'hidden';
+	        	return scrollingAllowedPerOverflowStyle;
+	    	}
+	    	// todo -- this is goofy and *must* be able to be done in a better way that I'll see when I'm better rested-- gonna make it work then gonna make it good
+	    	for (key in axesToCheck) {
+	    		if (axesToCheck.hasOwnProperty(key)) {
+	    			scrollingAllowedPerAllEvaluatedOverflowAxes = checkOverflowByAxis(key);
+	    			if (scrollingAllowedPerAllEvaluatedOverflowAxes === false) {
+	    				return scrollingAllowedPerAllEvaluatedOverflowAxes;
+	    			}
+	    		}
+	    	}
+
+	    	return scrollingAllowedPerAllEvaluatedOverflowAxes;
+
+    	}
+
+    	if (!config.ignoreOverflow) {
+    		isScrollable = isScrollable && checkOverflow();
     	}
 
 
